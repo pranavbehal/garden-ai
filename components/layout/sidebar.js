@@ -7,6 +7,7 @@ import {
   PlusCircle,
   Settings,
   Menu,
+  Info,
 } from "lucide-react";
 
 const mainNav = [
@@ -24,6 +25,11 @@ const mainNav = [
     title: "Local Hub",
     href: "/local-hub",
     icon: Cloud,
+  },
+  {
+    title: "TSA Information",
+    href: "/tsa",
+    icon: Info,
   },
 ];
 
