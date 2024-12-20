@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useChat } from "ai/react";
 import { Camera, Send, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 // Mock data - replace with your actual plant data later
 const mockPlants = [
@@ -37,8 +39,41 @@ const mockPlants = [
 ];
 
 export default function ChatPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedOption, setSelectedOption] = useState("general");
+  const [isTyping, setIsTyping] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+  const [showTitle, setShowTitle] = useState(true);
+  const [showUserMessage, setShowUserMessage] = useState(false);
+  const [currentText, setCurrentText] = useState("");
+  const messagesEndRef = useRef(null);
+
+  const selectedPlant = mockPlants.find((p) => p.id === selectedOption);
+
+  const systemMessage =
+    selectedOption === "general"
+      ? "You are a general gardening assistant. Provide helpful advice about plants and gardening."
+      : `You are helping with a specific plant: ${selectedPlant?.name}. Focus on care tips and solutions specific to this plant.`;
+
+  const { messages, input, handleInputChange, append } = useChat({
+    api: "/api/chat",
+    initialMessages: [],
+    body: {
+      systemMessage,
+    },
+    onFinish: () => {
+      setIsTyping(false);
+    },
+  });
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     const plantId = searchParams.get("plantId");
@@ -47,10 +82,33 @@ export default function ChatPage() {
     }
   }, [searchParams]);
 
-  const selectedPlant = mockPlants.find((p) => p.id === selectedOption);
-  const welcomeMessage = selectedPlant
-    ? `I'm ready to help with your ${selectedPlant.name}. What would you like to know?`
-    : "Hello! I'm your garden assistant. How can I help you today?";
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!input.trim() || isTyping || isStopping) return;
+
+    const userInput = input.trim().toLowerCase();
+
+    if (messages.length === 0) {
+      setShowTitle(false);
+    }
+
+    const userMessage = `Me: ${userInput}`;
+    setShowUserMessage(true);
+    setCurrentText(userMessage);
+
+    handleInputChange({
+      target: { value: "" },
+    });
+    setTimeout(async () => {
+      setIsTyping(true);
+      await append({
+        content: userMessage,
+        role: "user",
+      });
+      setShowUserMessage(false);
+    }, 500);
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -86,23 +144,55 @@ export default function ChatPage() {
       {/* Chat Messages Section */}
       <ScrollArea className="flex-grow px-8 py-6">
         <div className="space-y-4">
-          <div className="flex gap-3 text-sm">
-            <div className="rounded-lg bg-muted p-3">{welcomeMessage}</div>
-          </div>
+          {messages.map((message, i) => (
+            <div
+              key={i}
+              className={`flex gap-3 text-sm ${
+                message.role === "user" ? "justify-end" : ""
+              }`}
+            >
+              <div
+                className={`rounded-lg p-3 ${
+                  message.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
+                }`}
+              >
+                {message.content}
+              </div>
+            </div>
+          ))}
+          {showUserMessage && (
+            <div className="flex gap-3 text-sm justify-end">
+              <div className="rounded-lg bg-primary text-primary-foreground p-3">
+                {currentText}
+              </div>
+            </div>
+          )}
+          {isTyping && (
+            <div className="flex gap-3 text-sm">
+              <div className="rounded-lg bg-muted p-3">
+                <span className="animate-pulse">Typing...</span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
       {/* Chat Input Section */}
-      <div className="flex-none p-8 pt-4 border-t">
+      <form onSubmit={handleSubmit} className="flex-none p-8 pt-4 border-t">
         <div className="flex gap-2 max-w-5xl mx-auto">
-          <Button variant="outline" size="icon">
+          <Button type="button" variant="outline" size="icon">
             <Camera className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon">
+          <Button type="button" variant="outline" size="icon">
             <ImageIcon className="h-4 w-4" />
           </Button>
           <div className="flex-1 flex gap-2">
             <input
+              value={input}
+              onChange={handleInputChange}
               className="flex-1 min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
               placeholder={
                 selectedPlant
@@ -110,12 +200,12 @@ export default function ChatPage() {
                   : "Ask about gardening, plant care, or upload a photo..."
               }
             />
-            <Button size="icon">
+            <Button type="submit" size="icon" disabled={isTyping}>
               <Send className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
