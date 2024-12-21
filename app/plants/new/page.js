@@ -1,3 +1,5 @@
+"use client";
+
 import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +11,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useState } from "react";
+import { toast } from "sonner";
+import Image from "next/image";
 
 export default function NewPlantPage() {
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Create a preview URL for the image
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setSelectedImage(file);
+    toast.success("Photo selected successfully");
+  };
+
   return (
     <div className="flex-1 space-y-6 p-8">
       <div>
@@ -21,18 +45,44 @@ export default function NewPlantPage() {
       <div className="grid gap-6 md:grid-cols-2">
         {/* Photo Upload */}
         <div className="space-y-4">
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12">
-            <div className="flex flex-col items-center space-y-2 text-center">
-              <Camera className="h-8 w-8 text-muted-foreground" />
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  Upload a photo of your plant
-                </p>
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 relative">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              id="plant-photo"
+              onChange={handlePhotoUpload}
+            />
+            {previewUrl ? (
+              <div className="relative w-full aspect-square">
+                <Image
+                  src={previewUrl}
+                  alt="Plant preview"
+                  fill
+                  className="object-cover rounded-lg"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="absolute bottom-4 right-4"
+                  onClick={() => document.getElementById("plant-photo").click()}
+                >
+                  Change Photo
+                </Button>
               </div>
-              <Button variant="secondary" size="sm">
-                Upload Photo
-              </Button>
-            </div>
+            ) : (
+              <label
+                htmlFor="plant-photo"
+                className="flex flex-col items-center space-y-2 text-center cursor-pointer"
+              >
+                <Camera className="h-8 w-8 text-muted-foreground" />
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    Upload a photo of your plant
+                  </p>
+                </div>
+              </label>
+            )}
           </div>
         </div>
 

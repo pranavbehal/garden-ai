@@ -29,6 +29,7 @@ import {
   processAlerts,
 } from "@/lib/weather";
 import Image from "next/image";
+import Link from "next/link";
 
 const seasonalPlantingGuide = {
   vegetables: [
@@ -322,9 +323,11 @@ export default function LocalHubPage() {
                   <li>Consider indoor growing for herbs and microgreens</li>
                   <li>Mulch heavily to protect root vegetables</li>
                 </ul>
-                <Button variant="link" className="mt-4 p-0">
-                  Chat with AI about local tips
-                </Button>
+                <Link href="/chat" className="mt-4">
+                  <Button variant="link" className="p-0">
+                    Chat with AI about local tips
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>

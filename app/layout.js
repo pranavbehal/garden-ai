@@ -4,6 +4,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/react";
 import Script from "next/script";
+import { ThemeProvider } from "next-themes";
+import { SettingsProvider } from "@/lib/settings";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,20 +18,27 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      {/* UserWay Accessibility Widget Implementaion for All Pages*/}
       <head>
         <Script
           src="https://cdn.userway.org/widget.js"
           data-account="FSY3fD98w9"
-        ></Script>
+        />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar className="w-64 border-r" />
-          <main className="flex-1 overflow-y-auto">{children}</main>
-        </div>
-        <Toaster />
-        <Analytics />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          disableTransitionOnChange
+        >
+          <SettingsProvider>
+            <div className="flex h-screen overflow-hidden">
+              <Sidebar className="w-64 border-r" />
+              <main className="flex-1 overflow-y-auto">{children}</main>
+            </div>
+            <Toaster />
+            <Analytics />
+          </SettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

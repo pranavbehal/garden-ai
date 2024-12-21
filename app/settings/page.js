@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,8 +12,70 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { useSettings } from "@/lib/settings";
 
 export default function SettingsPage() {
+  const { settings, updateSettings } = useSettings();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    zipCode: "",
+    growingZone: "",
+    weatherAlerts: true,
+    plantReminders: true,
+    theme: "system",
+  });
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Load settings on mount
+  useEffect(() => {
+    setFormData({
+      name: settings.name || "",
+      email: settings.email || "",
+      zipCode: settings.zipCode || "",
+      growingZone: settings.growingZone || "",
+      weatherAlerts: settings.notifications?.weather ?? true,
+      plantReminders: settings.notifications?.plantCare ?? true,
+      theme: settings.theme || "system",
+    });
+  }, [settings]);
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setIsDirty(true);
+  };
+
+  const handleSave = () => {
+    updateSettings({
+      name: formData.name,
+      email: formData.email,
+      zipCode: formData.zipCode,
+      growingZone: formData.growingZone,
+      theme: formData.theme,
+      notifications: {
+        weather: formData.weatherAlerts,
+        plantCare: formData.plantReminders,
+      },
+    });
+    setIsDirty(false);
+    toast.success("Settings saved successfully");
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      name: settings.name || "",
+      email: settings.email || "",
+      zipCode: settings.zipCode || "",
+      growingZone: settings.growingZone || "",
+      weatherAlerts: settings.notifications?.weather ?? true,
+      plantReminders: settings.notifications?.plantCare ?? true,
+      theme: settings.theme || "system",
+    });
+    setIsDirty(false);
+    toast.info("Changes discarded");
+  };
+
   return (
     <div className="flex-1 space-y-6 p-8">
       <div>
@@ -30,11 +95,22 @@ export default function SettingsPage() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Display Name</Label>
-              <Input id="name" placeholder="Your name" />
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Your name"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="Your email" />
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                placeholder="Your email"
+              />
             </div>
           </div>
         </TabsContent>
@@ -43,11 +119,21 @@ export default function SettingsPage() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="zipcode">Zip Code</Label>
-              <Input id="zipcode" placeholder="Enter zip code" />
+              <Input
+                id="zipcode"
+                value={formData.zipCode}
+                onChange={(e) => handleInputChange("zipCode", e.target.value)}
+                placeholder="Enter zip code"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="growingZone">Growing Zone</Label>
-              <Select>
+              <Select
+                value={formData.growingZone}
+                onValueChange={(value) =>
+                  handleInputChange("growingZone", value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select growing zone" />
                 </SelectTrigger>
@@ -72,7 +158,14 @@ export default function SettingsPage() {
                   Receive notifications about severe weather
                 </p>
               </div>
-              <Button variant="outline">Configure</Button>
+              <Button
+                variant={formData.weatherAlerts ? "default" : "outline"}
+                onClick={() =>
+                  handleInputChange("weatherAlerts", !formData.weatherAlerts)
+                }
+              >
+                {formData.weatherAlerts ? "Enabled" : "Disabled"}
+              </Button>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
@@ -81,7 +174,14 @@ export default function SettingsPage() {
                   Get reminded about watering and maintenance
                 </p>
               </div>
-              <Button variant="outline">Configure</Button>
+              <Button
+                variant={formData.plantReminders ? "default" : "outline"}
+                onClick={() =>
+                  handleInputChange("plantReminders", !formData.plantReminders)
+                }
+              >
+                {formData.plantReminders ? "Enabled" : "Disabled"}
+              </Button>
             </div>
           </div>
         </TabsContent>
@@ -90,7 +190,10 @@ export default function SettingsPage() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="theme">Theme</Label>
-              <Select>
+              <Select
+                value={formData.theme}
+                onValueChange={(value) => handleInputChange("theme", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select theme" />
                 </SelectTrigger>
@@ -106,8 +209,12 @@ export default function SettingsPage() {
       </Tabs>
 
       <div className="flex justify-end space-x-2">
-        <Button variant="outline">Cancel</Button>
-        <Button>Save Changes</Button>
+        <Button variant="outline" onClick={handleCancel} disabled={!isDirty}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={!isDirty}>
+          Save Changes
+        </Button>
       </div>
     </div>
   );
