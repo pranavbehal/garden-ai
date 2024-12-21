@@ -12,6 +12,7 @@ import {
 export default function TSAPage() {
   return (
     <div className="flex-1 space-y-6 p-8">
+      {/* TSA header */}
       <div className="flex items-center gap-2">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">TSA Information</h2>
@@ -21,7 +22,9 @@ export default function TSAPage() {
         </div>
       </div>
 
+      {/* Project information cards */}
       <div className="grid gap-6">
+        {/* Repository info */}
         <Card>
           <CardHeader>
             <CardTitle>Project Repository</CardTitle>
@@ -56,6 +59,7 @@ export default function TSAPage() {
           </CardContent>
         </Card>
 
+        {/* Tech stack */}
         <Card>
           <CardHeader>
             <CardTitle>Technical Stack</CardTitle>
@@ -97,6 +101,7 @@ export default function TSAPage() {
           </CardContent>
         </Card>
 
+        {/* Project description */}
         <Card>
           <CardHeader>
             <CardTitle>About the Project</CardTitle>

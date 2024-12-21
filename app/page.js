@@ -17,7 +17,6 @@ import {
   processAlerts,
 } from "@/lib/weather";
 
-// Mock data for plants - will be replaced with Supabase data later
 const mockPlants = [
   {
     id: "1",
@@ -69,19 +68,17 @@ export default function HomePage() {
   const [conditions, setConditions] = useState(null);
   const [error, setError] = useState(null);
 
+  // Fetch weather data on component mount
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
             const { latitude, longitude } = position.coords;
-
-            // Get location info first
             const locationInfo = await getLocationInfo(latitude, longitude);
             setLocation(locationInfo);
 
             if (locationInfo) {
-              // Get forecast data
               const forecast = await getForecastData(
                 locationInfo.gridId,
                 locationInfo.gridX,
@@ -89,21 +86,15 @@ export default function HomePage() {
               );
               setWeather(forecast);
 
-              // Get hourly forecast for detailed conditions
               const hourlyForecast = await getHourlyForecast(
                 locationInfo.gridId,
                 locationInfo.gridX,
                 locationInfo.gridY
               );
 
-              // Get any active alerts
               const alertsData = await getAlerts(locationInfo.forecastZone);
-              const processedAlerts = processAlerts(alertsData);
-              setAlerts(processedAlerts);
-
-              // Process growing conditions
-              const growingConditions = getGrowingConditions(hourlyForecast);
-              setConditions(growingConditions);
+              setAlerts(processAlerts(alertsData));
+              setConditions(getGrowingConditions(hourlyForecast));
             }
           } catch (err) {
             setError("Failed to fetch weather data. Please try again later.");
@@ -121,10 +112,6 @@ export default function HomePage() {
     }
   }, []);
 
-  const handleAddPlant = () => {
-    router.push("/plants/new");
-  };
-
   // Calculate plant health statistics
   const healthStats = plants.reduce(
     (acc, plant) => {
@@ -137,7 +124,7 @@ export default function HomePage() {
 
   return (
     <div className="flex-1 space-y-6 p-8">
-      {/* Header */}
+      {/* Header with location and add plant button */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">My Garden</h2>
@@ -154,13 +141,13 @@ export default function HomePage() {
             )}
           </p>
         </div>
-        <Button onClick={handleAddPlant}>
+        <Button onClick={() => router.push("/plants/new")}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Plant
         </Button>
       </div>
 
-      {/* Plant Health Overview */}
+      {/* Plant health overview cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border p-4">
           <div className="text-sm font-medium text-muted-foreground">
@@ -196,17 +183,15 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Weather Alerts */}
+      {/* Weather alerts and conditions */}
       {alerts?.length > 0 && <WeatherAlerts alerts={alerts} />}
-
-      {/* Error Message */}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:bg-red-900/10">
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
       )}
 
-      {/* Plants Grid */}
+      {/* Plant grid with empty state */}
       <div>
         <h3 className="text-lg font-medium mb-4">My Plants</h3>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -222,7 +207,7 @@ export default function HomePage() {
               <p className="text-muted-foreground mb-4">
                 You haven&apos;t added any plants yet
               </p>
-              <Button onClick={handleAddPlant}>
+              <Button onClick={() => router.push("/plants/new")}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Your First Plant
               </Button>
@@ -231,7 +216,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Weather Section */}
+      {/* Weather widget */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Weather & Growing Conditions</h3>
         <div className="grid gap-4">

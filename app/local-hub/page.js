@@ -31,6 +31,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
+// Seasonal planting data for local recommendations
 const seasonalPlantingGuide = {
   vegetables: [
     {
@@ -67,11 +68,13 @@ const seasonalPlantingGuide = {
 };
 
 export default function LocalHubPage() {
+  // State for weather and location data
   const [location, setLocation] = useState(null);
   const [weather, setWeather] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [error, setError] = useState(null);
 
+  // Fetch local weather data on mount
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -117,6 +120,7 @@ export default function LocalHubPage() {
 
   return (
     <div className="flex-1 space-y-6 p-8">
+      {/* Location header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">

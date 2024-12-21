@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 
 export default function NewPlantPage() {
+  // State for image upload handling
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
@@ -28,7 +29,6 @@ export default function NewPlantPage() {
       return;
     }
 
-    // Create a preview URL for the image
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setSelectedImage(file);
@@ -43,7 +43,7 @@ export default function NewPlantPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Photo Upload */}
+        {/* Image upload section */}
         <div className="space-y-4">
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 relative">
             <input
@@ -54,6 +54,7 @@ export default function NewPlantPage() {
               onChange={handlePhotoUpload}
             />
             {previewUrl ? (
+              // Image preview with change option
               <div className="relative w-full aspect-square">
                 <Image
                   src={previewUrl}
@@ -71,6 +72,7 @@ export default function NewPlantPage() {
                 </Button>
               </div>
             ) : (
+              // Upload prompt
               <label
                 htmlFor="plant-photo"
                 className="flex flex-col items-center space-y-2 text-center cursor-pointer"
@@ -86,7 +88,7 @@ export default function NewPlantPage() {
           </div>
         </div>
 
-        {/* Plant Details Form */}
+        {/* Plant details form */}
         <div className="space-y-4">
           <div className="grid gap-4">
             <div className="space-y-2">
