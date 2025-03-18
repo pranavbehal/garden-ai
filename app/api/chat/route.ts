@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     await req.json();
 
   // Convert messages to include image URLs as attachments
-  const processedMessages = messages.map((msg) => {
+  const processedMessages = messages.map((msg: any) => {
     if (msg.experimental_attachments?.length > 0) {
       return {
         ...msg,
