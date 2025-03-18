@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useChat } from "ai/react";
 import { Camera, Send, X } from "lucide-react";
@@ -75,9 +75,14 @@ const formatAIResponse = (content) => {
   return <p>{content}</p>;
 };
 
+// Wrapper component for useSearchParams
+function SearchParamsWrapper({ children }) {
+  const searchParams = useSearchParams();
+  return children(searchParams);
+}
+
 export default function ChatPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [selectedOption, setSelectedOption] = useState("general");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
@@ -117,12 +122,7 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    const plantId = searchParams.get("plantId");
-    if (plantId) {
-      setSelectedOption(plantId);
-    }
-  }, [searchParams]);
+  useEffect(() => {}, []);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -223,6 +223,20 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+
+      {/* Suspense boundary for useSearchParams */}
+      <Suspense fallback={<div className="p-4">Loading...</div>}>
+        <SearchParamsWrapper>
+          {(searchParams) => {
+            const plantId = searchParams.get("plantId");
+            if (plantId && plantId !== selectedOption) {
+              setSelectedOption(plantId);
+            }
+
+            return null;
+          }}
+        </SearchParamsWrapper>
+      </Suspense>
 
       {/* Chat Messages Section */}
       <ScrollArea className="flex-grow px-8 py-6">
