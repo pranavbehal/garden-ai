@@ -1,5 +1,5 @@
 import { streamText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 
 /**
  * POST request handler for chat interactions
@@ -38,11 +38,11 @@ export async function POST(req: Request) {
 `;
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: google("gemini-2.0-flash-exp"),
     system: enhancedSystem,
     messages: processedMessages,
     temperature: 0.7,
-    maxTokens: 500,
+    maxTokens: 1000,
   });
 
   return result.toDataStreamResponse();

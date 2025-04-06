@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useChat } from "ai/react";
 import { Camera, Send, X } from "lucide-react";
@@ -16,30 +16,9 @@ import {
 import { toast } from "sonner";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
+import { usePlants, Plant } from "@/hooks/use-plants";
 
-const mockPlants = [
-  {
-    id: "1",
-    name: "Tomato Plant",
-    type: "Vegetable",
-    image: "https://images.unsplash.com/photo-1592841200221-a6898f307baa",
-  },
-  {
-    id: "2",
-    name: "Basil",
-    type: "Herb",
-    image: "https://images.unsplash.com/photo-1618375569909-3c8616cf7733",
-  },
-  {
-    id: "3",
-    name: "Snake Plant",
-    type: "Indoor",
-    image: "https://images.unsplash.com/photo-1593482892290-f54927ae1bb6",
-  },
-];
-
-// Helper function to format AI responses
-const formatAIResponse = (content) => {
+const formatAIResponse = (content: string) => {
   const parts = content.split(/(\d+\.\s+)/);
 
   if (parts.length > 1) {
@@ -47,10 +26,9 @@ const formatAIResponse = (content) => {
       <div className="space-y-2">
         {parts.map((part, index) => {
           if (/^\d+\.\s+$/.test(part)) {
-            return null; // Skip the number prefix
+            return null;
           }
 
-          // If it starts with ** for bold text
           if (part.includes("**")) {
             const [title, ...description] = part.split(":");
             return (
@@ -65,7 +43,6 @@ const formatAIResponse = (content) => {
             );
           }
 
-          // Regular text
           return part && <p key={index}>{part.trim()}</p>;
         })}
       </div>
@@ -75,22 +52,36 @@ const formatAIResponse = (content) => {
   return <p>{content}</p>;
 };
 
-// Wrapper component for useSearchParams
-function SearchParamsWrapper({ children }) {
-  const searchParams = useSearchParams();
-  return children(searchParams);
-}
-
 export default function ChatPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedOption, setSelectedOption] = useState("general");
   const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
-  const [attachedImage, setAttachedImage] = useState(null);
-  const [attachedImageUrl, setAttachedImageUrl] = useState(null);
-  const fileInputRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [attachedImage, setAttachedImage] = useState<File | null>(null);
+  const [attachedImageUrl, setAttachedImageUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { plants, isLoading } = usePlants();
 
-  const selectedPlant = mockPlants.find((p) => p.id === selectedOption);
+  useEffect(() => {
+    const plant = searchParams.get("plant");
+    if (plant) {
+      setSelectedOption(plant);
+    }
+  }, []);
+
+  const handlePlantChange = (value: string) => {
+    setSelectedOption(value);
+    const newParams = new URLSearchParams(searchParams);
+    if (value === "general") {
+      newParams.delete("plant");
+    } else {
+      newParams.set("plant", value);
+    }
+    router.replace(`/chat?${newParams.toString()}`, { scroll: false });
+  };
+
+  const selectedPlant = plants.find((p) => p.id === selectedOption);
 
   const systemMessage =
     selectedOption === "general"
@@ -102,7 +93,7 @@ export default function ChatPage() {
     initialMessages: [],
     body: {
       systemMessage,
-      plantImage: selectedPlant?.image,
+      plantImage: selectedPlant?.image_url,
     },
     onFinish: () => {
       setIsTyping(false);
@@ -122,9 +113,7 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {}, []);
-
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -147,7 +136,7 @@ export default function ChatPage() {
     }
   };
 
-  const handleFormSubmit = async (e) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() && !attachedImage) return;
     if (isTyping) return;
@@ -155,7 +144,7 @@ export default function ChatPage() {
     setIsTyping(true);
 
     const attachments = [];
-    if (attachedImage) {
+    if (attachedImage && attachedImageUrl) {
       attachments.push({
         name: "uploaded-image",
         type: attachedImage.type,
@@ -168,8 +157,18 @@ export default function ChatPage() {
         attachments.length > 0 ? attachments : undefined,
     });
 
-    handleInputChange({ target: { value: "" } });
+    handleInputChange({
+      target: { value: "" },
+    } as React.ChangeEvent<HTMLInputElement>);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen">
@@ -186,14 +185,14 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <Select value={selectedOption} onValueChange={setSelectedOption}>
+        <Select value={selectedOption} onValueChange={handlePlantChange}>
           <SelectTrigger className="w-[300px]">
             <SelectValue placeholder="Choose what to discuss" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="general">General Questions</SelectItem>
-            <Separator className="my-2" />
-            {mockPlants.map((plant) => (
+            {plants.length > 0 && <Separator className="my-2" />}
+            {plants.map((plant) => (
               <SelectItem key={plant.id} value={plant.id}>
                 {plant.name} ({plant.type})
               </SelectItem>
@@ -207,12 +206,18 @@ export default function ChatPage() {
         <div className="flex-none px-8 py-4">
           <div className="flex items-center gap-4 p-4 rounded-lg bg-muted">
             <div className="relative w-16 h-16 rounded-md overflow-hidden">
-              <Image
-                src={selectedPlant.image}
-                alt={selectedPlant.name}
-                fill
-                className="object-cover"
-              />
+              {selectedPlant.image_url ? (
+                <Image
+                  src={selectedPlant.image_url}
+                  alt={selectedPlant.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-secondary flex items-center justify-center">
+                  <Camera className="h-6 w-6 text-muted-foreground" />
+                </div>
+              )}
             </div>
             <div>
               <h3 className="font-medium">{selectedPlant.name}</h3>
@@ -223,20 +228,6 @@ export default function ChatPage() {
           </div>
         </div>
       )}
-
-      {/* Suspense boundary for useSearchParams */}
-      <Suspense fallback={<div className="p-4">Loading...</div>}>
-        <SearchParamsWrapper>
-          {(searchParams) => {
-            const plantId = searchParams.get("plantId");
-            if (plantId && plantId !== selectedOption) {
-              setSelectedOption(plantId);
-            }
-
-            return null;
-          }}
-        </SearchParamsWrapper>
-      </Suspense>
 
       {/* Chat Messages Section */}
       <ScrollArea className="flex-grow px-8 py-6">
@@ -249,105 +240,77 @@ export default function ChatPage() {
               }`}
             >
               <div
-                className={`rounded-lg p-4 ${
+                className={`rounded-lg px-4 py-2 max-w-[85%] ${
                   message.role === "user"
-                    ? "bg-primary text-primary-foreground ml-[30%]"
-                    : "bg-muted mr-[30%]"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
                 }`}
               >
-                {message.role === "user"
-                  ? message.content
-                  : formatAIResponse(message.content)}
-                {message.attachments?.length > 0 && (
-                  <div className="mt-2">
-                    {message.attachments.map((attachment, index) => (
-                      <Image
-                        key={index}
-                        src={attachment.url}
-                        width={300}
-                        height={300}
-                        alt={`Attached image ${index + 1}`}
-                        className="rounded-md"
-                      />
-                    ))}
-                  </div>
-                )}
+                {message.role === "assistant"
+                  ? formatAIResponse(message.content)
+                  : message.content}
               </div>
             </div>
           ))}
-          {isTyping && (
-            <div className="flex gap-3 text-sm">
-              <div className="rounded-lg bg-muted p-4 mr-[30%]">
-                <span className="animate-pulse">AI is typing...</span>
-              </div>
-            </div>
-          )}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
-      {/* Attached Image Preview */}
-      {attachedImageUrl && (
-        <div className="flex-none px-8 pb-4">
-          <div className="flex items-center gap-4 p-4 rounded-lg bg-muted max-w-3xl mx-auto">
-            <div className="relative w-16 h-16 rounded-md overflow-hidden">
+      {/* Input Section */}
+      <div className="flex-none p-8 pt-4">
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          {/* Image Preview */}
+          {attachedImageUrl && (
+            <div className="relative w-24 h-24">
               <Image
                 src={attachedImageUrl}
-                alt="Attached image"
+                alt="Attached"
                 fill
-                className="object-cover"
+                className="object-cover rounded-lg"
               />
+              <button
+                type="button"
+                onClick={clearAttachedImage}
+                className="absolute -top-2 -right-2 p-1 rounded-full bg-background border shadow-sm hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-muted-foreground">Image attached</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={clearAttachedImage}
-              className="text-red-500 hover:text-red-600"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Chat Input Section */}
-      <form onSubmit={handleFormSubmit} className="flex-none p-8 pt-4 border-t">
-        <div className="flex gap-2 max-w-3xl mx-auto">
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Camera className="h-4 w-4" />
-          </Button>
-          <div className="flex-1 flex gap-2">
+          {/* Input Bar */}
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Camera className="h-5 w-5" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </Button>
             <input
+              className="flex-grow px-4 py-2 rounded-lg bg-muted"
               value={input}
-              onChange={handleInputChange}
-              className="flex-1 min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
               placeholder={
                 selectedPlant
                   ? `Ask about your ${selectedPlant.name}...`
-                  : "Ask about gardening, plant care, or upload a photo..."
+                  : "Ask a gardening question..."
               }
+              onChange={handleInputChange}
             />
             <Button type="submit" size="icon" disabled={isTyping}>
-              <Send className="h-4 w-4" />
+              <Send className="h-5 w-5" />
             </Button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

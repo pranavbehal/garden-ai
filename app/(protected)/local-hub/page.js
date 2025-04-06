@@ -20,16 +20,71 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeatherAlerts } from "@/components/dashboard/weather-alerts";
-import {
-  getPointData,
-  getForecastData,
-  getHourlyForecast,
-  getAlerts,
-  getLocationInfo,
-  processAlerts,
-} from "@/lib/weather";
+
 import Image from "next/image";
 import Link from "next/link";
+
+// Helper functions for weather data
+async function getLocationInfo(latitude, longitude) {
+  try {
+    const response = await fetch(
+      `https://api.weather.gov/points/${latitude},${longitude}`
+    );
+    if (!response.ok) throw new Error("Failed to fetch location data");
+    const data = await response.json();
+    return {
+      city: data.properties.relativeLocation.properties.city,
+      state: data.properties.relativeLocation.properties.state,
+      county: data.properties.county,
+      gridId: data.properties.gridId,
+      gridX: data.properties.gridX,
+      gridY: data.properties.gridY,
+      forecastZone: data.properties.forecastZone,
+      timeZone: data.properties.timeZone,
+    };
+  } catch (error) {
+    console.error("Error getting location info:", error);
+    return null;
+  }
+}
+
+async function getForecastData(gridId, gridX, gridY) {
+  try {
+    const response = await fetch(
+      `https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast`
+    );
+    if (!response.ok) throw new Error("Failed to fetch forecast data");
+    return await response.json();
+  } catch (error) {
+    console.error("Error getting forecast data:", error);
+    return null;
+  }
+}
+
+async function getAlerts(forecastZone) {
+  try {
+    const response = await fetch(
+      `https://api.weather.gov/alerts/active/zone/${forecastZone}`
+    );
+    if (!response.ok) throw new Error("Failed to fetch alerts");
+    return await response.json();
+  } catch (error) {
+    console.error("Error getting alerts:", error);
+    return null;
+  }
+}
+
+function processAlerts(alertsData) {
+  if (!alertsData?.features) return [];
+  return alertsData.features.map((alert) => ({
+    id: alert.id,
+    event: alert.properties.event,
+    severity: alert.properties.severity,
+    description: alert.properties.description,
+    effective: alert.properties.effective,
+    expires: alert.properties.expires,
+  }));
+}
 
 // Seasonal planting data for local recommendations
 const seasonalPlantingGuide = {
@@ -68,7 +123,6 @@ const seasonalPlantingGuide = {
 };
 
 export default function LocalHubPage() {
-  // State for weather and location data
   const [location, setLocation] = useState(null);
   const [weather, setWeather] = useState(null);
   const [alerts, setAlerts] = useState([]);
@@ -82,12 +136,10 @@ export default function LocalHubPage() {
           try {
             const { latitude, longitude } = position.coords;
 
-            // Get location info
             const locationInfo = await getLocationInfo(latitude, longitude);
             setLocation(locationInfo);
 
             if (locationInfo) {
-              // Get forecast data
               const forecast = await getForecastData(
                 locationInfo.gridId,
                 locationInfo.gridX,
@@ -95,7 +147,6 @@ export default function LocalHubPage() {
               );
               setWeather(forecast);
 
-              // Get alerts
               const alertsData = await getAlerts(locationInfo.forecastZone);
               const processedAlerts = processAlerts(alertsData);
               setAlerts(processedAlerts);

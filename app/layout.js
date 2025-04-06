@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
         >
           <SettingsProvider>
             <div className="flex h-screen overflow-hidden">
-              <Sidebar className="w-64 border-r" />
+              {/* <Sidebar className="w-64 border-r" /> */}
               <main className="flex-1 overflow-y-auto">{children}</main>
             </div>
             <Toaster />

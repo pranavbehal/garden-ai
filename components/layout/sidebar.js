@@ -8,7 +8,9 @@ import {
   Settings,
   Menu,
   Info,
+  LogOut,
 } from "lucide-react";
+import { LogoutButton } from "../logout-button";
 
 const mainNav = [
   {
@@ -86,6 +88,9 @@ export function Sidebar({ className }) {
               </Link>
             ))}
           </div>
+        </div>
+        <div className=" bottom-0 px-3 py-2 ml-2 ">
+          <LogoutButton className="" />
         </div>
       </div>
     </div>
